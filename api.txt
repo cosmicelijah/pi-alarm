@@ -1,0 +1,28 @@
+2 APIs:
+    Program to RPi GPIO
+    Program to Frontend
+
+P -> RPi
+    if alarm time = current time {
+        // make alarm ring for max 1 hours without snooze so that it doesn't ring forever
+        int t = 3600
+        while (t >= 0) {
+            set gpio pin 17 to high
+            wait(3)
+            set gpio pin 17 low
+            wait(2)
+            t -= 5
+        } // 5 second loop, might record what my alarm does and modify this to match it
+    }
+
+    // How complex do we make these alarms? Do we want to set times like Alarm A only goes off on Monday through Friday?
+    // I don't see why flutter wouldn't have a day by day widget.
+    // M T W R F S (Sunday is unnecessary)
+
+
+P -> Frontend
+    I'm pretty sure all we have to do is static file 
+    hosting, but I could be wrong...
+
+    We still need a way to tell the RPi to create/delete/enable/disable an alarm to watch for from the front end though, and also snoozing/stopping the alarm.
+    So, like websockets and shit idk
