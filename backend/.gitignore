@@ -12,3 +12,6 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+# Don't save because its supposed to be individual and also these are test alarms
+alarm_config.json
