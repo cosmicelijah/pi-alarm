@@ -54,7 +54,9 @@ async fn api_alarm_create(req_body: String, data: web::Data<AppState>) -> impl R
     match alarm_state.has_alarm(new_alarm.clone()) {
         Some(_) => return HttpResponse::BadRequest().json(JsonError::from("Alarm already exists")),
         None => {
+            let clone_alarm = new_alarm.clone();
             alarm_state.add_alarm(new_alarm);
+            AlarmT::set_alarm(clone_alarm);
             return HttpResponse::Ok().json(JsonSuccess::from("Alarm created"));
         }
     };
@@ -74,11 +76,13 @@ async fn api_alarm_delete(req_body: String, data: web::Data<AppState>) -> impl R
         }
         Err(_) => (),
     }
-    
+
     // if the date and time could not be parsed, return an error to the client
     let del_alarm = match AlarmT::from_json(&req_body) {
         Ok(del_alarm) if AlarmT::validate_json(&req_body) => del_alarm,
-        Err(_) => return HttpResponse::BadRequest().json(JsonError::from("Incorrect alarm format")),
+        Err(_) => {
+            return HttpResponse::BadRequest().json(JsonError::from("Incorrect alarm format"))
+        }
         _ => return HttpResponse::BadRequest().json(JsonError::from("Time given is impossible")),
     };
 
