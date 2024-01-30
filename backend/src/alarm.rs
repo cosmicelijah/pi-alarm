@@ -1,13 +1,15 @@
-use std::{
-    ops::Add,
-    str::FromStr,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{ops::Add, sync::Mutex, thread, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
 use chrono::{Duration, Local, NaiveTime};
+
+use rppal::gpio::{self, Gpio};
+
+// Pin 16 on the board
+const GPIO_ALARM_TRIGGER: u8 = 23;
+static ALARM_PIN: Mutex<gpio::pin::Pin> =
+    Mutex::new(Gpio::new()?.get(GPIO_ALARM_TRIGGER)?.into_output());
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum DaysT {
@@ -49,6 +51,16 @@ impl AlarmT {
         }
     }
 
+    fn activate_alarm(&self, arc_pin: Arc<Mutex<gpio::pin::Pin>>) {
+        // Try lock, if success, ring alarm, else return since alarm is already ringing
+        if let mut alarm_pin = arc_pin.try_lock().unwrap() {
+            println!("Alarm ringing!!!");
+            thread::sleep(Duration::from_secs(90));
+        } else {
+            return;
+        }
+    }
+
     fn set_alarm_thread(&self, alarm_time: NaiveTime) {
         while self.enabled {
             let now = Local::now().time();
@@ -78,7 +90,18 @@ impl AlarmT {
             println!("Waiting for the right time...");
             thread::sleep(dur);
 
-            println!("Alarm ringing!!!");
+            // Lock gpio pin usage and ring alarm so that two alarms can't ring at once
+            /**
+             *  If the pin is locked and the alarm wants to ring, simply skip and go back to sleep
+             *  Reasoning:
+             *      If unlocked -> no alarm ringing
+             *      If locked -> alarm already ringing, no need to ring,
+             *          will just annoy user for having to turn off two concurrent alarms,
+             *          might also just break the program if two functions are trying to modify a pin,
+             *          better to just lock the pin just in case
+             */
+            let arc_pin: Arc<Mutex<gpio::pin::Pin>> = Arc::new(ALARM_PIN);
+            self.activate_alarm(arc_pin);
         }
     }
 
