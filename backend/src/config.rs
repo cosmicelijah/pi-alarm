@@ -49,8 +49,10 @@ impl AlarmConfigFile {
     }
 
     pub fn add_alarm(&mut self, alarm: AlarmT) {
+        let alarm_clone = alarm.clone();
         self.alarms.push(alarm);
         let _ = self.to_file(&self.filename); // specifically ignoring the possibility of an error
+        alarm_clone.set_alarm();
     }
 
     pub fn has_alarm(&self, alarm: AlarmT) -> Option<usize> {

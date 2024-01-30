@@ -1,4 +1,9 @@
-use std::{ops::Add, str::FromStr, thread};
+use std::{
+    ops::Add,
+    str::FromStr,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -44,7 +49,7 @@ impl AlarmT {
         }
     }
 
-    async fn set_alarm_thread(&self, duration: Duration) {
+    fn set_alarm_thread(&self, duration: Duration) {
         while self.enabled {
             let dur = match duration.to_std() {
                 Ok(dur) => dur,
@@ -56,17 +61,21 @@ impl AlarmT {
 
             // Turn off alarm if it was disabled during sleep
             if !self.enabled {
+                println!("Alarm was disabled during sleep");
                 return;
             }
+            println!("Waiting for the right time...");
             thread::sleep(dur);
+
+            println!("Alarm ringing!!!");
         }
     }
 
-    pub fn set_alarm(&mut self, alarm: AlarmT) -> bool {
-        let alarm_time = match NaiveTime::parse_from_str(&alarm.to_string(), "%H:%M") {
+    pub fn set_alarm(&self) -> bool {
+        let alarm_time = match NaiveTime::parse_from_str(&self.to_string(), "%H:%M") {
             Ok(alarm_time) => alarm_time,
             Err(_) => {
-                eprintln!("Could not parse alarm: {}", alarm.to_string());
+                eprintln!("Could not parse alarm: {}", self.to_string());
                 return false;
             }
         };
@@ -82,8 +91,12 @@ impl AlarmT {
 
         println!("Alarm set for {} seconds into the future", duration);
 
+        let self_clone = self.clone();
+
+        println!("Creating thread for alarm");
+
         thread::spawn(move || {
-            alarm.set_alarm_thread(duration);
+            self_clone.set_alarm_thread(duration);
         });
 
         return true;
