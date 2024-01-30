@@ -49,8 +49,19 @@ impl AlarmT {
         }
     }
 
-    fn set_alarm_thread(&self, duration: Duration) {
+    fn set_alarm_thread(&self, alarm_time: NaiveTime) {
         while self.enabled {
+            let now = Local::now().time();
+
+            // Alarm should be set into the future
+            let mut duration = alarm_time.signed_duration_since(now);
+
+            if duration < Duration::zero() {
+                duration = duration.add(Duration::days(1));
+            }
+
+            println!("Alarm set for {} seconds into the future", duration);
+
             let dur = match duration.to_std() {
                 Ok(dur) => dur,
                 Err(_) => {
@@ -80,23 +91,12 @@ impl AlarmT {
             }
         };
 
-        let now = Local::now().time();
-
-        // Alarm should be set into the future
-        let mut duration = alarm_time.signed_duration_since(now);
-
-        if duration < Duration::zero() {
-            duration = duration.add(Duration::days(1));
-        }
-
-        println!("Alarm set for {} seconds into the future", duration);
-
         let self_clone = self.clone();
 
         println!("Creating thread for alarm");
 
         thread::spawn(move || {
-            self_clone.set_alarm_thread(duration);
+            self_clone.set_alarm_thread(alarm_time);
         });
 
         return true;
