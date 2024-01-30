@@ -54,9 +54,7 @@ async fn api_alarm_create(req_body: String, data: web::Data<AppState>) -> impl R
     match alarm_state.has_alarm(new_alarm.clone()) {
         Some(_) => return HttpResponse::BadRequest().json(JsonError::from("Alarm already exists")),
         None => {
-            let clone_alarm = new_alarm.clone();
             alarm_state.add_alarm(new_alarm);
-            AlarmT::set_alarm(clone_alarm);
             return HttpResponse::Ok().json(JsonSuccess::from("Alarm created"));
         }
     };

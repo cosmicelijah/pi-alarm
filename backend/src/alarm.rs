@@ -1,4 +1,4 @@
-use std::{ops::Add, str::FromStr};
+use std::{ops::Add, str::FromStr, thread};
 
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +20,7 @@ pub struct AlarmT {
     pub hour: u8,
     pub minute: u8,
     pub days: Vec<DaysT>,
+    pub enabled: bool,
 }
 
 // add a trait to alarm to get the json representation of the alarm
@@ -43,12 +44,28 @@ impl AlarmT {
         }
     }
 
-    // fn set_alarm_thread()
+    async fn set_alarm_thread(&self, duration: Duration) {
+        while self.enabled {
+            let dur = match duration.to_std() {
+                Ok(dur) => dur,
+                Err(_) => {
+                    eprintln!("Something is fucked");
+                    return;
+                }
+            };
 
-    pub fn set_alarm(alarm: AlarmT) -> bool {
+            // Turn off alarm if it was disabled during sleep
+            if !self.enabled {
+                return;
+            }
+            thread::sleep(dur);
+        }
+    }
+
+    pub fn set_alarm(&mut self, alarm: AlarmT) -> bool {
         let alarm_time = match NaiveTime::parse_from_str(&alarm.to_string(), "%H:%M") {
             Ok(alarm_time) => alarm_time,
-            Err(e) => {
+            Err(_) => {
                 eprintln!("Could not parse alarm: {}", alarm.to_string());
                 return false;
             }
@@ -65,7 +82,10 @@ impl AlarmT {
 
         println!("Alarm set for {} seconds into the future", duration);
 
+        thread::spawn(move || {
+            alarm.set_alarm_thread(duration);
+        });
+
         return true;
-        // std::thread::spawn(f);
     }
 }
